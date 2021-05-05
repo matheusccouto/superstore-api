@@ -12,5 +12,7 @@ RUN pip install -r requirements.txt
 COPY api/ ./api/
 COPY run.py .
 
+EXPOSE 5000
+
 # Run app.
 CMD [ "python", "run.py" ]
