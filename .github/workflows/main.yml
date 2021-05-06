@@ -1,53 +1,78 @@
-# This is a basic workflow to help you get started with Actions
+name: Build and deploy Docker app to Azure
 
-name: CI
-
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
+  # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+# CONFIGURATION
+# For help, go to https://github.com/Azure/Actions
+#
+# Set up the following secrets in your repository:
+#   AZURE_CREDENTIALS, REGISTRY_USERNAME, REGISTRY_PASSWORD, REGISTRY_URL
+# 2. Change these variables for your configuration:
+env:
+  AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }} # set this to your application's name
+  CONTAINER_REGISTRY: ${{ secrets.REGISTRY_URL }} # set secret with Container Registry URL, example : xyz.azurecr.io
+# AZURE_RESOURCE_GROUP: ActionsDemo   # set this to your Azure Resource group's name - Needed only if you are provisioning the app in the workflow
+# AZURE_APP_PLAN: ActionPlan  # set this to your App service plan's name - Needed only if you are provisioning the app in the workflow
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  build-and-deploy-to-dev:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    environment: dev
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      - name: 'Login via Azure CLI'
+      - uses: actions/checkout@master
+      - name: Azure authentication
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: 'Build and push image'
+      #     - name: Azure CLI script to provision a new Web App for Container
+      #       uses: azure/CLI@v0-beta
+      #       with:
+      #         azcliversion: latest
+      #         inlineScript: |
+      #           az webapp create --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --plan ${{ env.AZURE_APP_PLAN }} --name ${{ env.AZURE_WEBAPP_NAME }}  -i nginx
+      - name: ACR authentication
         uses: azure/docker-login@v1
         with:
-          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          login-server: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
-      - run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
+      - name: Docker Build & Push to ACR
+        run: |
+          docker build . -t ${{ env.CONTAINER_REGISTRY }}/nodejsapp:${{ github.sha }}
+          docker push ${{ env.CONTAINER_REGISTRY }}/nodejsapp:${{ github.sha }}
+      # Uncomment the below action snippet if the Web app credentials are not updated as web app settings
+      #     - name: Set Web App ACR authentication
+      #       uses: Azure/appservice-settings@v1
+      #       with:
+      #         app-name: ${{ env.AZURE_WEBAPP_NAME }}
+      #         app-settings-json: |
+      #           [
+      #               {
+      #                   "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+      #                   "value": "${{ secrets.REGISTRY_PASSWORD }}",
+      #                   "slotSetting": false
+      #               },
+      #               {
+      #                   "name": "DOCKER_REGISTRY_SERVER_URL",
+      #                   "value": "https://${{ env.CONTAINER_REGISTRY }}",
+      #                   "slotSetting": false
+      #               },
+      #               {
+      #                   "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+      #                   "value": "${{ secrets.REGISTRY_USERNAME  }}",
+      #                   "slotSetting": false
+      #               }
+      #           ]
 
-      - name: 'Deploy to Azure Container Instances'
-        uses: 'azure/aci-deploy@v1'
+      - name: "Deploy to Azure Web App for Container"
+        uses: azure/webapps-deploy@v2
         with:
-          resource-group: ${{ secrets.RESOURCE_GROUP }}
-          dns-name-label: ${{ secrets.RESOURCE_GROUP }}${{ github.run_number }}
-          image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-          registry-login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-          registry-username: ${{ secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-          name: aci-sampleapp
-          location: 'west us'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ env.CONTAINER_REGISTRY }}/nodejsapp:${{ github.sha }}
+#         startup-command: 'npm start'    # Include start up command to start the app container
+
+# For more samples to get started with GitHub Action workflows to deploy to Azure, refer to https://github.com/Azure/actions-workflow-samples

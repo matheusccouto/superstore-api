@@ -13,5 +13,5 @@ def home():
 def orders():
     """ Get inbound orders prediction """
     return flask.jsonify({
-            "foo": "bar"
+            "And now": "something completely different..."
         })
