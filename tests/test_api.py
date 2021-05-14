@@ -13,11 +13,11 @@ class TestSales:
 
     def test_get(self):
         """Test GET. Response status must be 200 (OK)."""
-        assert self.client.get(r"/v1/sales/?days=1").status_code == 200
+        assert self.client.get(r"/v1/sales/?weeks=1").status_code == 200
 
     def test_length(self):
         """Test length from all players sequence."""
-        assert len(self.client.get(r"/v1/sales/?days=365").json) == 365
+        assert len(self.client.get(r"/v1/sales/?weeks=52").json) == 52
 
     def test_post(self):
         """Test POST. Response status must be 405 (method not allowed)."""

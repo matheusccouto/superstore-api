@@ -29,5 +29,5 @@ def _forecast_sales(periods):
 @app.route("/v1/sales/")
 def orders():
     """Get sales forecast."""
-    periods = flask.request.args.get("days")
+    periods = flask.request.args.get("weeks")
     return _forecast_sales(int(periods))
