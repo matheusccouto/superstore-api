@@ -1,5 +1,5 @@
 # Base image.
-FROM python:3.8
+FROM python:3.7-stretch
 
 # Working directory.
 WORKDIR /app
@@ -7,14 +7,14 @@ WORKDIR /app
 # Copy and install requirements.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-COPY requirements-prophet.txt .
-RUN pip install -r requirements-prophet.txt
+COPY requirements-ml.txt .
+RUN pip install -r requirements-ml.txt
 
 # Copy app.
 COPY api/ ./api/
+COPY model/ ./model/
 COPY run.py .
 
 EXPOSE 5000
 
-# Run app.
 CMD [ "python", "run.py" ]
