@@ -5,6 +5,8 @@ Time series predictions for the Superstore dataset.
 
 The API is available at [superstore-api.azurewebsites.net](https://superstore-api.azurewebsites.net/)
 
+The first request may take a long time as the app hibernate when idle.
+
 ### Endpoints
 
 #### Sales
